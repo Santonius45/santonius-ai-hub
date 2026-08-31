@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -26,10 +27,11 @@ export default function DashboardPage() {
     }
 
     loadUser();
-  }, [router]);
+  }, [router, supabase]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
+
     router.replace("/login");
     router.refresh();
   }
@@ -40,6 +42,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between border-b border-white/10 pb-6">
           <div>
             <p className="text-2xl font-bold">SantoniusAI</p>
+
             <p className="mt-1 text-sm text-gray-400">
               AI Developer Platform
             </p>
@@ -67,30 +70,42 @@ export default function DashboardPage() {
 
         <section className="mt-12 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-gray-400">API Hub</p>
+            <p className="text-sm text-gray-400">
+              API Hub
+            </p>
+
             <h2 className="mt-3 text-xl font-semibold">
               Coming Soon
             </h2>
+
             <p className="mt-2 text-sm text-gray-500">
               Connect and test AI providers.
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-gray-400">Vision AI</p>
+            <p className="text-sm text-gray-400">
+              Vision AI
+            </p>
+
             <h2 className="mt-3 text-xl font-semibold">
               Coming Soon
             </h2>
+
             <p className="mt-2 text-sm text-gray-500">
               Analyze images with computer vision.
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-gray-400">Data AI</p>
+            <p className="text-sm text-gray-400">
+              Data AI
+            </p>
+
             <h2 className="mt-3 text-xl font-semibold">
               Coming Soon
             </h2>
+
             <p className="mt-2 text-sm text-gray-500">
               Analyze datasets using AI.
             </p>
