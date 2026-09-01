@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white">
@@ -21,9 +23,12 @@ export default function Home() {
           </a>
         </div>
 
-        <button className="rounded-lg border border-white/20 px-4 py-2 text-sm transition hover:bg-white hover:text-black">
+        <Link
+          href="/register"
+          className="rounded-lg border border-white/20 px-4 py-2 text-sm transition hover:bg-white hover:text-black"
+        >
           Get Started
-        </button>
+        </Link>
       </nav>
 
       {/* Hero */}
@@ -44,13 +49,19 @@ export default function Home() {
         </p>
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-          <button className="rounded-xl bg-white px-6 py-3 font-medium text-black transition hover:bg-gray-200">
+          <Link
+            href="/register"
+            className="rounded-xl bg-white px-6 py-3 font-medium text-black transition hover:bg-gray-200"
+          >
             Get Started
-          </button>
+          </Link>
 
-          <button className="rounded-xl border border-white/20 px-6 py-3 font-medium text-white transition hover:bg-white/10">
+          <Link
+            href="/api-hub"
+            className="rounded-xl border border-white/20 px-6 py-3 font-medium text-white transition hover:bg-white/10"
+          >
             Explore API Hub
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -200,3 +211,4 @@ export default function Home() {
     </main>
   );
 }
+
