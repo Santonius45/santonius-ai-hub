@@ -15,6 +15,27 @@ export default function ApiHubPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleProviderChange = (
+    newProvider: string
+  ) => {
+    setProvider(newProvider);
+    setResponse("");
+    setError("");
+    setStatusCode(null);
+    setResponseTime(null);
+    setResponseProvider("");
+    setResponseModel("");
+
+    if (newProvider === "gemini") {
+      setModel("gemini-2.5-flash");
+    }
+
+    if (newProvider === "openai") {
+      setModel("gpt-4o-mini");
+    }
+  };
 
   const sendRequest = async () => {
     if (!prompt.trim()) {
@@ -29,6 +50,7 @@ export default function ApiHubPage() {
     setResponseTime(null);
     setResponseProvider("");
     setResponseModel("");
+    setCopied(false);
 
     const startTime = performance.now();
 
@@ -47,22 +69,30 @@ export default function ApiHubPage() {
 
       const data = await res.json();
 
-      const endTime = performance.now();
-      const duration = Math.round(endTime - startTime);
+      const duration = Math.round(
+        performance.now() - startTime
+      );
 
       setResponseTime(duration);
       setStatusCode(res.status);
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Request failed.");
+        throw new Error(
+          data.error || "Request failed."
+        );
       }
 
       setResponse(data.response || "");
-      setResponseProvider(data.provider || "Google Gemini");
-      setResponseModel(data.model || model);
+      setResponseProvider(
+        data.provider || provider
+      );
+      setResponseModel(
+        data.model || model
+      );
     } catch (err) {
-      const endTime = performance.now();
-      setResponseTime(Math.round(endTime - startTime));
+      setResponseTime(
+        Math.round(performance.now() - startTime)
+      );
 
       setError(
         err instanceof Error
@@ -82,12 +112,34 @@ export default function ApiHubPage() {
     setResponseTime(null);
     setResponseProvider("");
     setResponseModel("");
+    setCopied(false);
+  };
+
+  const copyResponse = async () => {
+    if (!response) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        response
+      );
+
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      setError("Failed to copy response.");
+    }
   };
 
   const handlePromptKeyDown = (
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key === "Enter"
+    ) {
       event.preventDefault();
 
       if (!loading) {
@@ -156,12 +208,20 @@ export default function ApiHubPage() {
 
               <select
                 value={provider}
-                onChange={(e) => setProvider(e.target.value)}
+                onChange={(e) =>
+                  handleProviderChange(
+                    e.target.value
+                  )
+                }
                 disabled={loading}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="gemini">
                   Google Gemini
+                </option>
+
+                <option value="openai">
+                  OpenAI
                 </option>
               </select>
             </div>
@@ -174,13 +234,21 @@ export default function ApiHubPage() {
 
               <select
                 value={model}
-                onChange={(e) => setModel(e.target.value)}
+                onChange={(e) =>
+                  setModel(e.target.value)
+                }
                 disabled={loading}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <option value="gemini-2.5-flash">
-                  Gemini 2.5 Flash
-                </option>
+                {provider === "gemini" ? (
+                  <option value="gemini-2.5-flash">
+                    Gemini 2.5 Flash
+                  </option>
+                ) : (
+                  <option value="gpt-4o-mini">
+                    GPT-4o Mini
+                  </option>
+                )}
               </select>
             </div>
 
@@ -198,9 +266,15 @@ export default function ApiHubPage() {
 
               <textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) =>
+                  setPrompt(e.target.value)
+                }
                 onKeyDown={handlePromptKeyDown}
-                placeholder="Ask Gemini something..."
+                placeholder={
+                  provider === "gemini"
+                    ? "Ask Gemini something..."
+                    : "Ask OpenAI something..."
+                }
                 rows={9}
                 disabled={loading}
                 className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-600 focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
@@ -260,19 +334,34 @@ export default function ApiHubPage() {
                   Response
                 </h2>
 
-                {statusCode && (
-                  <span
-                    className={`rounded-md border px-2 py-1 text-xs font-medium ${
-                      statusCode >= 200 && statusCode < 300
-                        ? "border-green-900 bg-green-950/40 text-green-400"
-                        : "border-red-900 bg-red-950/40 text-red-400"
-                    }`}
-                  >
-                    {statusCode >= 200 && statusCode < 300
-                      ? `${statusCode} OK`
-                      : `${statusCode} ERROR`}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {response && (
+                    <button
+                      onClick={copyResponse}
+                      className="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-800"
+                    >
+                      {copied
+                        ? "Copied!"
+                        : "Copy"}
+                    </button>
+                  )}
+
+                  {statusCode && (
+                    <span
+                      className={`rounded-md border px-2 py-1 text-xs font-medium ${
+                        statusCode >= 200 &&
+                        statusCode < 300
+                          ? "border-green-900 bg-green-950/40 text-green-400"
+                          : "border-red-900 bg-red-950/40 text-red-400"
+                      }`}
+                    >
+                      {statusCode >= 200 &&
+                      statusCode < 300
+                        ? `${statusCode} OK`
+                        : `${statusCode} ERROR`}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <p className="mt-1 text-sm text-slate-400">
@@ -292,7 +381,10 @@ export default function ApiHubPage() {
                   </p>
 
                   <p className="mt-1 text-xs text-slate-600">
-                    Google Gemini is processing your request
+                    {provider === "gemini"
+                      ? "Google Gemini"
+                      : "OpenAI"}{" "}
+                    is processing your request
                   </p>
                 </div>
               ) : response ? (
@@ -347,7 +439,8 @@ export default function ApiHubPage() {
                   </p>
 
                   <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                    {responseProvider || "Google Gemini"}
+                    {responseProvider ||
+                      "Google Gemini"}
                   </p>
                 </div>
 
@@ -363,7 +456,6 @@ export default function ApiHubPage() {
 
               </div>
             )}
-
           </section>
         </div>
 
@@ -381,7 +473,7 @@ export default function ApiHubPage() {
             </div>
 
             <div className="text-xs text-slate-600">
-              API key secured server-side
+              API keys secured server-side
             </div>
           </div>
         </div>

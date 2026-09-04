@@ -1,29 +1,45 @@
 import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { authenticateApiKey } from "@/lib/api-key-auth";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const apiKey = process.env.GEMINI_API_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const openaiApiKey = process.env.OPENAI_API_KEY;
 
-if (!apiKey) {
+if (!geminiApiKey) {
   throw new Error("GEMINI_API_KEY is not configured.");
 }
 
-const ai = new GoogleGenAI({
-  apiKey,
+if (!openaiApiKey) {
+  throw new Error("OPENAI_API_KEY is not configured.");
+}
+
+const gemini = new GoogleGenAI({
+  apiKey: geminiApiKey,
 });
 
-const MODEL = "gemini-2.5-flash";
-const PROVIDER_NAME = "Google Gemini";
+const openai = new OpenAI({
+  apiKey: openaiApiKey,
+});
+
+const GEMINI_MODEL = "gemini-2.5-flash";
+const OPENAI_MODEL = "gpt-4o-mini";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
 
   let prompt = "";
+  let provider = "";
+  let model = "";
+  let authenticatedUserId: string | null = null;
 
   try {
     const body = await request.json();
 
     prompt = body?.prompt;
+    provider = body?.provider || "gemini";
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -35,41 +51,106 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get Supabase server client
-    const supabase = await createSupabaseServerClient();
-
-    // Get currently logged-in user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+    if (!["gemini", "openai"].includes(provider)) {
       return NextResponse.json(
         {
           success: false,
-          error: "You must be logged in to use the API Hub.",
+          error: "Unsupported AI provider.",
         },
-        { status: 401 }
+        { status: 400 }
       );
     }
 
-    // Call Gemini
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-    });
+    const authorization = request.headers.get("authorization");
 
-    const aiResponse = response.text ?? "";
+    // ==========================================
+    // AUTHENTICATION
+    // ==========================================
+
+    if (authorization) {
+      const apiKeyAuth = await authenticateApiKey(request);
+
+      if (!apiKeyAuth.authenticated || !apiKeyAuth.userId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: apiKeyAuth.error || "Invalid API key.",
+          },
+          { status: 401 }
+        );
+      }
+
+      authenticatedUserId = apiKeyAuth.userId;
+    } else {
+      const supabase = await createSupabaseServerClient();
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "You must be logged in or provide a valid API key.",
+          },
+          { status: 401 }
+        );
+      }
+
+      authenticatedUserId = user.id;
+    }
+
+    let aiResponse = "";
+    let providerName = "";
+
+    // ==========================================
+    // GOOGLE GEMINI
+    // ==========================================
+
+    if (provider === "gemini") {
+      model = GEMINI_MODEL;
+      providerName = "Google Gemini";
+
+      const response = await gemini.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: prompt,
+      });
+
+      aiResponse = response.text ?? "";
+    }
+
+    // ==========================================
+    // OPENAI
+    // ==========================================
+
+    if (provider === "openai") {
+      model = OPENAI_MODEL;
+      providerName = "OpenAI";
+
+      const response = await openai.responses.create({
+        model: OPENAI_MODEL,
+        input: prompt,
+      });
+
+      aiResponse = response.output_text ?? "";
+    }
+
     const latencyMs = Date.now() - startTime;
 
-    // Save API request to Supabase
-    const { error: insertError } = await supabase
+    // ==========================================
+    // SAVE REQUEST
+    // ==========================================
+
+    const supabase = await createSupabaseServerClient();
+
+    const { error: insertError } = await supabaseAdmin
       .from("api_requests")
       .insert({
-        user_id: user.id,
-        provider_name: PROVIDER_NAME,
-        model: MODEL,
+        user_id: authenticatedUserId,
+        provider_name: providerName,
+        model: model,
         prompt: prompt,
         response: aiResponse,
         status_code: 200,
@@ -81,51 +162,60 @@ export async function POST(request: Request) {
       console.error("Failed to save API request:", insertError);
     }
 
-    // Keep the existing API response format
     return NextResponse.json({
       success: true,
-      provider: PROVIDER_NAME,
-      model: MODEL,
+      provider: providerName,
+      model: model,
       response: aiResponse,
     });
   } catch (error) {
     const latencyMs = Date.now() - startTime;
 
-    console.error("Gemini API error:", error);
+    console.error("AI API error:", error);
 
-    // Try to log failed request if user is available
+    // ==========================================
+    // LOG FAILED REQUEST
+    // ==========================================
+
     try {
-      if (prompt) {
+      if (prompt && authenticatedUserId) {
         const supabase = await createSupabaseServerClient();
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          await supabase.from("api_requests").insert({
-            user_id: user.id,
-            provider_name: PROVIDER_NAME,
-            model: MODEL,
-            prompt: prompt,
-            response: null,
-            status_code: 500,
-            latency_ms: latencyMs,
-            error_message:
-              error instanceof Error
-                ? error.message
-                : "Failed to generate AI response.",
-          });
-        }
+        await supabaseAdmin.from("api_requests").insert({
+          user_id: authenticatedUserId,
+          provider_name:
+            provider === "openai"
+              ? "OpenAI"
+              : "Google Gemini",
+          model:
+            model ||
+            (provider === "openai"
+              ? OPENAI_MODEL
+              : GEMINI_MODEL),
+          prompt: prompt,
+          response: null,
+          status_code: 500,
+          latency_ms: latencyMs,
+          error_message:
+            error instanceof Error
+              ? error.message
+              : "Failed to generate AI response.",
+        });
       }
     } catch (loggingError) {
-      console.error("Failed to log API error:", loggingError);
+      console.error(
+        "Failed to log API error:",
+        loggingError
+      );
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to generate AI response.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate AI response.",
       },
       { status: 500 }
     );
