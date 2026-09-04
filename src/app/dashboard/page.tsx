@@ -593,6 +593,42 @@ export default function DashboardPage() {
 
         </section>
 
+        {/* API KEY MANAGEMENT */}
+        <section className="mt-6 rounded-2xl border border-cyan-900/50 bg-slate-900 p-6">
+
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+              <div className="flex items-center gap-3">
+
+                <h2 className="text-lg font-semibold">
+                  API Key Management
+                </h2>
+
+                <span className="rounded-md border border-cyan-900 bg-cyan-950/30 px-2 py-1 text-xs font-medium text-cyan-400">
+                  DEVELOPER
+                </span>
+
+              </div>
+
+              <p className="mt-2 max-w-2xl text-sm text-slate-500">
+                Manage API keys used to access the Santonius AI API.
+                Create new keys, view existing keys, and revoke keys
+                that are no longer needed.
+              </p>
+            </div>
+
+            <button
+              onClick={() => router.push("/dashboard/api-keys")}
+              className="shrink-0 rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+            >
+              Manage API Keys →
+            </button>
+
+          </div>
+
+        </section>
+
         {/* RECENT REQUESTS */}
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900">
 
