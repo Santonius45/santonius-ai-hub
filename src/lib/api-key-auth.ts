@@ -13,6 +13,7 @@ export async function authenticateApiKey(request: Request) {
     return {
       authenticated: false,
       userId: null,
+      apiKeyId: null,
       error: "API key is required.",
     };
   }
@@ -21,6 +22,7 @@ export async function authenticateApiKey(request: Request) {
     return {
       authenticated: false,
       userId: null,
+      apiKeyId: null,
       error: "Invalid authorization format.",
     };
   }
@@ -31,6 +33,7 @@ export async function authenticateApiKey(request: Request) {
     return {
       authenticated: false,
       userId: null,
+      apiKeyId: null,
       error: "API key is required.",
     };
   }
@@ -52,6 +55,7 @@ export async function authenticateApiKey(request: Request) {
     return {
       authenticated: false,
       userId: null,
+      apiKeyId: null,
       error: "Failed to authenticate API key.",
     };
   }
@@ -60,6 +64,7 @@ export async function authenticateApiKey(request: Request) {
     return {
       authenticated: false,
       userId: null,
+      apiKeyId: null,
       error: "Invalid API key.",
     };
   }
@@ -68,6 +73,7 @@ export async function authenticateApiKey(request: Request) {
     return {
       authenticated: false,
       userId: null,
+      apiKeyId: null,
       error: "API key has been revoked.",
     };
   }
@@ -82,6 +88,7 @@ export async function authenticateApiKey(request: Request) {
   return {
     authenticated: true,
     userId: data.user_id,
+    apiKeyId: data.id,
     error: null,
   };
 }

@@ -770,6 +770,7 @@ export default function DashboardPage() {
         {/* QUICK ACTIONS */}
         <section className="mt-6 grid gap-5 md:grid-cols-3">
 
+          {/* API HUB */}
           <button
             onClick={() => router.push("/api-hub")}
             className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-left transition hover:border-cyan-500/50 hover:bg-slate-800"
@@ -787,21 +788,26 @@ export default function DashboardPage() {
             </p>
           </button>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-            <p className="text-sm font-semibold text-slate-300">
+          {/* VISION AI (SEKARANG SUDAH AKTIF) */}
+          <button
+            onClick={() => router.push("/dashboard/vision")}
+            className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-left transition hover:border-emerald-500/50 hover:bg-slate-800"
+          >
+            <p className="text-sm font-semibold text-emerald-400">
               Vision AI
             </p>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-slate-400">
               Analyze images with computer vision.
             </p>
 
-            <p className="mt-4 text-xs font-medium text-slate-600">
-              COMING SOON
+            <p className="mt-4 text-sm font-medium text-slate-300">
+              Open Vision AI →
             </p>
-          </div>
+          </button>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          {/* DATA AI (COMING SOON) */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 opacity-60">
             <p className="text-sm font-semibold text-slate-300">
               Data AI
             </p>

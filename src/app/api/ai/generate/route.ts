@@ -33,7 +33,9 @@ export async function POST(request: Request) {
   let prompt = "";
   let provider = "";
   let model = "";
+
   let authenticatedUserId: string | null = null;
+  let authenticatedApiKeyId: string | null = null;
 
   try {
     const body = await request.json();
@@ -81,6 +83,7 @@ export async function POST(request: Request) {
       }
 
       authenticatedUserId = apiKeyAuth.userId;
+      authenticatedApiKeyId = apiKeyAuth.apiKeyId;
     } else {
       const supabase = await createSupabaseServerClient();
 
@@ -100,6 +103,7 @@ export async function POST(request: Request) {
       }
 
       authenticatedUserId = user.id;
+      authenticatedApiKeyId = null;
     }
 
     let aiResponse = "";
@@ -140,15 +144,14 @@ export async function POST(request: Request) {
     const latencyMs = Date.now() - startTime;
 
     // ==========================================
-    // SAVE REQUEST
+    // SAVE SUCCESSFUL REQUEST
     // ==========================================
-
-    const supabase = await createSupabaseServerClient();
 
     const { error: insertError } = await supabaseAdmin
       .from("api_requests")
       .insert({
         user_id: authenticatedUserId,
+        api_key_id: authenticatedApiKeyId,
         provider_name: providerName,
         model: model,
         prompt: prompt,
@@ -179,10 +182,9 @@ export async function POST(request: Request) {
 
     try {
       if (prompt && authenticatedUserId) {
-        const supabase = await createSupabaseServerClient();
-
         await supabaseAdmin.from("api_requests").insert({
           user_id: authenticatedUserId,
+          api_key_id: authenticatedApiKeyId,
           provider_name:
             provider === "openai"
               ? "OpenAI"
